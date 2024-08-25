@@ -3,15 +3,22 @@ import torch.nn as nn
 from gridencoder import GridEncoder
 import torch
 from utils import sample_points_along_ray
-class RgbNet(nn.Module):
-    def __init__(self):
+n_points = 200
+class NgpNet(nn.Module):
+    def __init__(self) -> None:
         super().__init__()
-        
+        self.level_dim1 = 1
         self.level_dim2 = 4
+        self.num_levels1 = 5
         self.num_levels2 = 6
-        base_resolution2 = 4
-        self.encoder_rgb = GridEncoder(input_dim=3, num_levels=self.num_levels2, level_dim=self.level_dim2, base_resolution=base_resolution2)
-
+        self.base_resolution1 = 8
+        self.base_resolution2 = 4
+        self.encoder_label = GridEncoder(input_dim=3, num_levels=self.num_levels1, level_dim=self.level_dim1, base_resolution=self.base_resolution1)
+        self.encoder_rgb = GridEncoder(input_dim=3, num_levels=self.num_levels2, level_dim=self.level_dim2, base_resolution=self.base_resolution2)
+        self.model_label = nn.Sequential(
+            nn.Linear(self.num_levels1, 1),
+            nn.Sigmoid()
+        )
         self.model_rgb = nn.Sequential(
             nn.Linear(self.num_levels2 * (self.level_dim2) * 5, 64),
             nn.ReLU(),
@@ -21,9 +28,19 @@ class RgbNet(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 3),
         )
-    
     def forward(self, x, indices_first):
+        num_points = x.size(0)
+        with torch.no_grad():
+            points_encoded = sample_points_along_ray(x[:, :2], x[:, 2:4])
+        output = self.encoder_label(points_encoded).reshape(num_points, int(n_points), -1)
+        output = self.model_label(output)
+        output_hits, _ = torch.max(output, dim=1)
 
+        # get the first voxel hitted
+        all_labels = (output > 0.5).float()
+        indices_first = torch.argmax(all_labels, dim=1).view(-1)
+        
+        
         num_points = torch.arange(x.size(0))
         with torch.no_grad():
             points_encoded = sample_points_along_ray(x[:, :2], x[:, 2:4])
@@ -47,3 +64,4 @@ class RgbNet(nn.Module):
         output_rgb = self.model_rgb(points_encoded_first)
 
         return output_rgb
+  
