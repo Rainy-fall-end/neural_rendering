@@ -1,3 +1,6 @@
+# data file
+*.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -5,6 +8,12 @@ __pycache__/
 
 # C extensions
 *.so
+
+# VScode config
+*.vscode
+
+# readData file
+readtxt.py
 
 # Distribution / packaging
 .Python
