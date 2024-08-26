@@ -39,3 +39,15 @@ def loss_fn2(output_rgb, rgb):
     loss2 = nn.MSELoss()(output_rgb, rgb)
 
     return loss2
+
+def loss_fn3(output_label,labels,output_dists,dists,output_rgb,rgb):
+    mask = (labels > 0.5).squeeze()
+
+    # Applichiamo la soglia morbida
+    indices_first = find_index_with_exponential_decay(output_dists.view(-1, int(n_points))).view(-1, 1) / (int(n_points))
+    
+    # L1 Loss tra gli indici soft e dist
+    loss0 = nn.BCELoss()(output_label, labels)
+    loss1 = nn.L1Loss()(indices_first[mask], dists[mask])
+    loss2 = loss_fn2(output_rgb,rgb)
+    return loss0 + loss1 + loss2

@@ -1,3 +1,7 @@
+# model file
+models/
+
+
 # data file
 *.txt
 

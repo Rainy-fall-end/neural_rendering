@@ -28,24 +28,18 @@ class NgpNet(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 3),
         )
-    def forward(self, x, indices_first):
+    def forward(self, x):
         num_points = x.size(0)
         with torch.no_grad():
             points_encoded = sample_points_along_ray(x[:, :2], x[:, 2:4])
-        output = self.encoder_label(points_encoded).reshape(num_points, int(n_points), -1)
-        output = self.model_label(output)
-        output_hits, _ = torch.max(output, dim=1)
+        output_label = self.encoder_label(points_encoded).reshape(num_points, int(n_points), -1)
+        output_label = self.model_label(output_label)
+        output_hits, _ = torch.max(output_label, dim=1)
 
         # get the first voxel hitted
-        all_labels = (output > 0.5).float()
+        all_labels = (output_label > 0.5).float()
         indices_first = torch.argmax(all_labels, dim=1).view(-1)
         
-        
-        num_points = torch.arange(x.size(0))
-        with torch.no_grad():
-            points_encoded = sample_points_along_ray(x[:, :2], x[:, 2:4])
-
-        # get the first voxel hitted
         points_encoded = self.encoder_rgb(points_encoded)
 
         indices_prev1 = torch.clamp(indices_first - 2, 0, 299)
@@ -53,15 +47,16 @@ class NgpNet(nn.Module):
         indices_next1 = torch.clamp(indices_first + 1, 0, 299)
         indices_next2 = torch.clamp(indices_first + 2, 0, 299)
 
+        num_points_ls = torch.arange(num_points)
         points_encoded_first = torch.cat([
-                                            points_encoded[num_points, indices_prev1],
-                                            points_encoded[num_points, indices_prev2],
-                                            points_encoded[num_points, indices_first], 
-                                            points_encoded[num_points, indices_next1],
-                                            points_encoded[num_points, indices_next2]
+                                            points_encoded[num_points_ls, indices_prev1],
+                                            points_encoded[num_points_ls, indices_prev2],
+                                            points_encoded[num_points_ls, indices_first], 
+                                            points_encoded[num_points_ls, indices_next1],
+                                            points_encoded[num_points_ls, indices_next2]
                                         ], dim=-1)
 
         output_rgb = self.model_rgb(points_encoded_first)
 
-        return output_rgb
+        return output_hits,output_label,output_rgb
   
