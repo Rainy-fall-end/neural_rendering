@@ -42,10 +42,10 @@ class NgpNet(nn.Module):
         
         points_encoded = self.encoder_rgb(points_encoded)
 
-        indices_prev1 = torch.clamp(indices_first - 2, 0, 299)
-        indices_prev2 = torch.clamp(indices_first - 1, 0, 299)
-        indices_next1 = torch.clamp(indices_first + 1, 0, 299)
-        indices_next2 = torch.clamp(indices_first + 2, 0, 299)
+        indices_prev1 = torch.clamp(indices_first - 2, 0, n_points-1)
+        indices_prev2 = torch.clamp(indices_first - 1, 0, n_points-1)
+        indices_next1 = torch.clamp(indices_first + 1, 0, n_points-1)
+        indices_next2 = torch.clamp(indices_first + 2, 0, n_points-1)
 
         num_points_ls = torch.arange(num_points)
         points_encoded_first = torch.cat([
